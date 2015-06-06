@@ -2,18 +2,26 @@
 
 You need to have R installed on your system. If you are using a debian/ubuntu based distribution, just type the following command in a terminal.
 
-sudo apt-get install r-base-core
+`sudo apt-get install r-base-core`
 
 ### Package Requirements for Development
 
-sudo apt-get install r-base-core texlive-full
+`sudo apt-get install r-base-core texlive-full`
 
 ###  R Dependencies
-Run within R
-install.packages("phytools")
+
+Before build and install *sfreemap* make sure you have installed the package *phytools*. Run the following command within R.
+
+`install.packages("phytools")`
 
 ### Build and Install
-R CMD build sfreemap && R CMD INSTALL sfreemap
+
+Run the following command, considering that you have this repository under the directory *sfreemap*.
+
+`R CMD build sfreemap && R CMD INSTALL sfreemap`
+
+After it you can open R and load sfreemap with `require(sfreemp)` and use it as a regular R package.
+If you want to have the documentation type `R CMD check sfreemap`. The PDF file will be generated and stored in a directory called *sfreemap.Rcheck*.
 
 ### Example
 
