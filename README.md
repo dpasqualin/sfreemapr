@@ -20,6 +20,18 @@ install.packages('devtools')
 install_github('dpasqualin/sfreemap')
 ```
 
+If you have troubles installing the `devtools` package, try downloading
+`sfreemap` and then building and installing it using the following commands:
+
+```
+git clone https://github.com/dpasqualin/sfreemap.git
+R CMD check sfreemap && R CMD build sfreemap && R CMD INSTALL sfreemap
+```
+
+If you choose to install using the command above, the documentation will be
+available in the directory `sfreemap.Rcheck`.
+
+
 ### Example
 
 ```
