@@ -10,18 +10,15 @@ You need to have R installed on your system. If you are using a debian/ubuntu ba
 
 ###  R Dependencies
 
-Before build and install *sfreemap* make sure you have installed the package *phytools*. Run the following command within R.
+### Install
 
-`install.packages("phytools")`
+Before installing *sfreemap* make sure you have the package *phytools*:
 
-### Build and Install
-
-Run the following command, considering that you have this repository under the directory *sfreemap*.
-
-`R CMD build sfreemap && R CMD INSTALL sfreemap`
-
-After it you can open R and load sfreemap with `require(sfreemp)` and use it as a regular R package.
-If you want to have the documentation type `R CMD check sfreemap`. The PDF file will be generated and stored in a directory called *sfreemap.Rcheck*.
+```
+install.packages('phytools')
+install.packages('devtools')
+install_github('dpasqualin/sfreemap')
+```
 
 ### Example
 
