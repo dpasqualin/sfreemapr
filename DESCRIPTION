@@ -5,6 +5,7 @@ Title: Simulation-Free Stochastic Mapping
 Author: Diego Giovane Pasqualin
 Maintainer: Diego Giovane Pasqualin <dpasqualin@inf.ufpr.br>
 Depends: R (>= 2.10), ape (>= 3.0-10), phytools (>= 0.3-93)
+Suggests: testthat (>= 0.10.0)
 ZipData: no
 Description: A simulation free approach for stochastic mapping on
  phylogenies.
