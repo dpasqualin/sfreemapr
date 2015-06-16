@@ -22,7 +22,7 @@ getPars<-function(bt,xx,model,Q,tree,tol,m,liks=TRUE){
         rownames(L)[1:N]<-1:N
     } else L<-NULL
     if(any(XX$rates<tol)){
-        message(paste("\nWarning: some elements of Q not numerically distinct from 0; setting to",tol,"\n"))
+        #message(paste("\nWarning: some elements of Q not numerically distinct from 0; setting to",tol,"\n"))
         XX$rates[XX$rates<tol]<-tol
     }
     Q<-matrix(XX$rates[II],m,m,dimnames=list(lvls,lvls))
