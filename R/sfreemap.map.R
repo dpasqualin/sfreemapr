@@ -173,7 +173,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     Q_eigen[['vectors_inv']] <- solve(Q_eigen$vectors)
 
     # Step 2
-    # Compute P(tb), the transistion probability, for each edge length t of T
+    # Compute P(tp), the transistion probability, for each edge length t of T
     # Q = U X diag(d1,...,dm) X U**-1
     # U are the eigenvectors of Q
     # d1,...,dm are the eigenvalues of Q
@@ -189,10 +189,10 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     MAP[['prior']] <- prior
 
     # Transistion probabilities
-    MAP[['tb']] <- transition_probabilities(Q, Q_eigen, tree, tree_extra)
+    MAP[['tp']] <- transition_probabilities(Q, Q_eigen, tree, tree_extra)
 
     # Step 3
-    # Employing the eigen decomposition above compute E(h, tb*) for
+    # Employing the eigen decomposition above compute E(h, tp*) for
     # each edge b* in the set of interest Omega using equation 2.4
     # (expected number of markov transitions) and equation 2.12
     # (expected markov rewards).
@@ -204,7 +204,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     # Compute the data likelihood Pr(D) as the dot product of Froot and root
     # distribution pi.
     MAP[['fl']] <- fractional_likelihoods(tree, tree_extra, Q, Q_eigen
-                                          , prior, MAP$tb)
+                                          , prior, MAP$tp)
 
     # Posterior restricted moment for branches
     # This is the "per branch" expected value for lmt and emr
@@ -297,7 +297,7 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
 }
 
 # The vector of forward, often called partial or fractional likelihood.
-fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tb) {
+fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp) {
 
     # F is the vector of forward, often called partial or fractional,
     # likelihoods at node u. Element F ui is the probability of the
@@ -326,8 +326,8 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tb) {
         left <- tree$edge[e+1,2]   # left node
 
         # NOTE: this loop can possibly be vectorized...
-        tright <- Tb[e,,]     # transistion probability for edge p -> right
-        tleft <- Tb[e+1,,]    # transistion probability for edge p -> left
+        tright <- Tp[,,e]     # transistion probability for edge p -> right
+        tleft <- Tp[,,e+1]    # transistion probability for edge p -> left
         for (i in 1:tree_extra$n_states) {
             S[right,i] <- sum(F[right,] * tright[i,])
             S[left,i] <- sum(F[left,] * tleft[i,])
@@ -355,8 +355,8 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tb) {
         right <- tree$edge[e-1,2] # right node
 
         # TODO: Vectorize this...
-        tleft <- Tb[e,,]
-        tright <- Tb[e-1,,]
+        tleft <- Tp[,,e]
+        tright <- Tp[,,e-1]
         for (i in 1:tree_extra$n_states) {
             G[left,i] <- sum(G[p,]*S[right,]*tleft[i,])
             G[right,i] <- sum(G[p,]*S[left,]*tright[i,])
@@ -377,7 +377,7 @@ transition_probabilities <- function(Q, Q_eigen, tree, tree_extra) {
     # P(t) = U X diag(e**d1t, ... e**dmt) X U**-1
     # t is an arbitrary edge length
     # exp(n) is nth power of e (euler number)
-    P <- array(0, dim = c(tree_extra$n_edges, dim(Q)))
+    P <- array(0, dim = c(dim(Q), tree_extra$n_edges))
 
     # Initialize d
     d <- diag(Q_eigen$values)
@@ -386,7 +386,7 @@ transition_probabilities <- function(Q, Q_eigen, tree, tree_extra) {
     # NOTE: vectorize this...
     for (i in 1:tree_extra$n_edges) {
         diag(d) <- exp(Q_eigen$values * tree$edge.length[i])
-        P[i,,] <- Q_eigen$vectors %*% d %*% Q_eigen$vectors_inv
+        P[,,i] <- Q_eigen$vectors %*% d %*% Q_eigen$vectors_inv
     }
 
     return(P)
