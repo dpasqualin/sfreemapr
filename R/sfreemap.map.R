@@ -288,8 +288,8 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
         # Equation 3.8 in the paper
         for (j in 1:tree_extra$n_states) {
             gs <- G[p,j] * S[b,j]
-            prm_lmt[i,j] <- prm_lmt[i,j] + sum(gs * lmt[i,j,] * F[c,])
-            prm_emr[i,j] <- prm_emr[i,j] + sum(gs * emr[i,j,] * F[c,])
+            prm_lmt[i,j] <- prm_lmt[i,j] + sum(gs * lmt[j,,i] * F[c,])
+            prm_emr[i,j] <- prm_emr[i,j] + sum(gs * emr[j,,i] * F[c,])
         }
     }
 
@@ -397,9 +397,9 @@ transition_probabilities <- function(Q, Q_eigen, tree, tree_extra) {
 func_H <- function(Q, Q_eigen, tree, tree_extra) {
 
     # Labelled markov transitions
-    lmt <- array(0, dim = c(tree_extra$n_edges, dim(Q)))
+    lmt <- array(0, dim = c(dim(Q), tree_extra$n_edges))
     # Expected markov rewards
-    emr <- array(0, dim = c(tree_extra$n_edges, dim(Q)))
+    emr <- array(0, dim = c(dim(Q), tree_extra$n_edges))
 
     # Just an alias, to make it easier to read the formulas below
     d <- Q_eigen$values
@@ -415,8 +415,6 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
     # TODO: Professor Marcos said on the email BayesTraits Vs Simmap that this
     # calculation is slightly different... check it later.
     emr_diag <- diag(tree_extra$rewards)
-
-    E <- array(0, dim = c(tree_extra$n_states, dim(Q)))
 
     # 1. Get the transitions that happened in a edge
     # TODO: This matrix has only one entry different from zero, there
@@ -468,8 +466,8 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
             }
         }
 
-        lmt[b,,] <- lmt_partial
-        emr[b,,] <- emr_partial
+        lmt[,,b] <- lmt_partial
+        emr[,,b] <- emr_partial
     }
 
     return (list(lmt=lmt, emr=emr))
