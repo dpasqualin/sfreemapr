@@ -285,11 +285,14 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
         c <- edge[i,2] # child node
         b <- edge[i,3] # brother node
 
+        lmt_i <- lmt[,,i]
+        emr_i <- emr[,,i]
+
         # Equation 3.8 in the paper
         for (j in 1:tree_extra$n_states) {
-            gs <- G[p,j] * S[b,j]
-            prm_lmt[i,j] <- prm_lmt[i,j] + sum(gs * lmt[j,,i] * F[c,])
-            prm_emr[i,j] <- prm_emr[i,j] + sum(gs * emr[j,,i] * F[c,])
+            gs <- G[p,j] * S[b,j] * F[c,]
+            prm_lmt[i,j] <- prm_lmt[i,j] + sum(gs * lmt_i[j,])
+            prm_emr[i,j] <- prm_emr[i,j] + sum(gs * emr_i[j,])
         }
     }
 
