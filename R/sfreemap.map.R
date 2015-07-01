@@ -433,6 +433,8 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
     # This is part of the second inner loop. We broght it outside
     # because... it's R, and you have to do weird stuff to improve performance.
     Sij_all <- lapply(1:tree_extra$n_states, gen_Si)
+    Slmt <- lapply(1:tree_extra$n_states, function(i) Sij_all[[i]]%*%QL)
+    Semr <- lapply(1:tree_extra$n_states, function(i) Sij_all[[i]]%*%emr_diag)
 
     # A matrix where each line corresponds to exp(t*d) for the nth edge
     # This is gonna be used inside build_Iij function. It was there before,
@@ -452,10 +454,8 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
             # 3. S, which uses the Q_eigen and E, a matrix with zero entries
             # except for the iith element, which is 1
             # Set new Ei
-            Si <- Sij_all[[i]]
-
-            Silmt = Si %*% QL
-            Siemr = Si %*% emr_diag
+            Silmt = Slmt[[i]]
+            Siemr = Semr[[i]]
 
             for (j in 1:tree_extra$n_states) {
                 # Set new Ej
