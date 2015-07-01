@@ -189,7 +189,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     MAP[['prior']] <- prior
 
     # Transistion probabilities
-    MAP[['tp']] <- transition_probabilities(Q, Q_eigen, tree, tree_extra)
+    MAP[['tp']] <- transition_probabilities(Q_eigen, tree$edge.length)
 
     # Step 3
     # Employing the eigen decomposition above compute E(h, tp*) for
@@ -372,20 +372,21 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp) {
 #
 # output    A tridimentional matrix with the transition probabilities P
 #           for every the edge length t of the tree.
-transition_probabilities <- function(Q, Q_eigen, tree, tree_extra) {
+transition_probabilities <- function(Q_eigen, edges) {
 
     # P(t) = U X diag(e**d1t, ... e**dmt) X U**-1
     # t is an arbitrary edge length
     # exp(n) is nth power of e (euler number)
-    P <- array(0, dim = c(dim(Q), tree_extra$n_edges))
+    n_edges <- length(edges)
+    P <- array(0, dim = c(dim(Q_eigen$vectors), n_edges))
 
     # Initialize d
     d <- diag(Q_eigen$values)
 
     # Iterate over branch length
     # NOTE: vectorize this...
-    for (i in 1:tree_extra$n_edges) {
-        diag(d) <- exp(Q_eigen$values * tree$edge.length[i])
+    for (i in 1:n_edges) {
+        diag(d) <- exp(Q_eigen$values * edges[i])
         P[,,i] <- Q_eigen$vectors %*% d %*% Q_eigen$vectors_inv
     }
 

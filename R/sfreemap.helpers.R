@@ -106,6 +106,7 @@ apeAce <- function(tree,x,model,fixedQ=NULL,...){
     if(is.matrix(x)) liks[TIPS,]<-x
     else liks[cbind(TIPS,x)]<-1
     phy<-reorder(tree,"pruningwise")
+
     dev<-function(p,output.liks=FALSE,fixedQ=NULL){
         if(any(is.nan(p))||any(is.infinite(p))) return(1e50)
         comp<-numeric(nb.tip+nb.node)
@@ -113,13 +114,18 @@ apeAce <- function(tree,x,model,fixedQ=NULL,...){
             Q[]<-c(p,0)[rate]
             diag(Q)<--rowSums(Q)
         } else Q<-fixedQ
+
+        Q_eigen <- eigen(Q, TRUE, only.values = FALSE)
+        Q_eigen[['vectors_inv']] <- solve(Q_eigen$vectors)
+        tb <<- transition_probabilities(Q_eigen, phy$edge.length)
+
         for(i in seq(from=1,by=2,length.out=nb.node)){
             j<-i+1L
             anc<-phy$edge[i,1]
             des1<-phy$edge[i,2]
             des2<-phy$edge[j,2]
-            v.l<-matexpo(Q*phy$edge.length[i])%*%liks[des1,]
-            v.r<-matexpo(Q*phy$edge.length[j])%*%liks[des2,]
+            v.l<-tb[,,i]%*%liks[des1,]
+            v.r<-tb[,,j]%*%liks[des2,]
             v<-v.l*v.r
             comp[anc]<-sum(v)
             liks[anc,]<-v/comp[anc]
