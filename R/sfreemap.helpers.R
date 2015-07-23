@@ -117,7 +117,7 @@ apeAce <- function(tree,x,model,fixedQ=NULL,...){
 
         Q_eigen <- eigen(Q, TRUE, only.values = FALSE)
         Q_eigen[['vectors_inv']] <- solve(Q_eigen$vectors)
-        tb <<- transition_probabilities(Q_eigen, phy$edge.length)
+        tb <- transition_probabilities(Q_eigen, phy$edge.length)
 
         for(i in seq(from=1,by=2,length.out=nb.node)){
             j<-i+1L
