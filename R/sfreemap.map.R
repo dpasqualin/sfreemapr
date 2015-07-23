@@ -196,7 +196,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     # each edge b* in the set of interest Omega using equation 2.4
     # (expected number of markov transitions) and equation 2.12
     # (expected markov rewards).
-    MAP[['h']] <- func_H(Q, Q_eigen, tree, tree_extra)
+    MAP[['h']] <- func_H(Q, Q_eigen, tree, tree_extra, tol)
 
     # Step 4 and 5
     # Traverse the tree once and calculate Fu and Sb for each node u and
@@ -204,13 +204,13 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     # Compute the data likelihood Pr(D) as the dot product of Froot and root
     # distribution pi.
     MAP[['fl']] <- fractional_likelihoods(tree, tree_extra, Q, Q_eigen
-                                          , prior, MAP$tp)
+                                          , prior, MAP$tp, tol)
 
     # Posterior restricted moment for branches
     # This is the "per branch" expected value for lmt and emr
     MAP[['prm']] <- posterior_restricted_moment(tree, tree_extra, MAP)
 
-    # This is the global mean, not sure why we need it..
+    # This is the global expected value
     MAP[['ev']] <- expected_value(tree, Q, MAP)
 
     # Let's set the elements back to the original tree
@@ -221,17 +221,10 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     tree[['mapped.edge']] <- MAP[['ev']]$emr
     tree[['mapped.edge.lmt']] <- MAP[['ev']]$lmt
 
-    # NOTE: make.simmap (phytools) has this, not sure why it's useful. but if
-    # you decide to uncomment it, remember to uncomment the equivalent line on
-    # sfreemap.reorder()
-    # tree[['maps']] <- generate_maps(tree[['mapped.edge']])
+    tree[['MAP']] <- MAP
 
     # Return the tree in the original order
     return (sfreemap.reorder(tree, 'cladewise'))
-}
-
-generate_maps <- function(mapped) {
-    return(lapply(1:nrow(mapped), function(i) mapped[i,]))
 }
 
 # The final answer!
@@ -242,8 +235,6 @@ expected_value <- function(tree, Q, map) {
     prm <- map[['prm']]
 
     EV = list()
-    #EV[['lmt']] <- apply(prm[['lmt']], 2, sum) / likelihood
-    #EV[['emr']] <- apply(prm[['emr']], 2, sum) / likelihood
     EV[['lmt']] <- prm[['lmt']] / likelihood
     EV[['emr']] <- prm[['emr']] / likelihood
 
@@ -300,7 +291,7 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
 }
 
 # The vector of forward, often called partial or fractional likelihood.
-fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp) {
+fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol) {
 
     # F is the vector of forward, often called partial or fractional,
     # likelihoods at node u. Element F ui is the probability of the
@@ -318,9 +309,9 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp) {
     states <- colnames(F) <- colnames(S) <- colnames(G) <- colnames(Q)
 
     # Init F matrix with tip values
-    # As stated in the article, when value is ambiguous, with set all ambiguous
-    # values as 1 (100% chance)
-    F[c(1:tree_extra$n_tips),] <- tree_extra$states
+    # As stated in the article, when value is ambiguous, we set all ambiguous
+    # values to 1 (100% chance)
+    F[1:tree_extra$n_tips,] <- tree_extra$states
 
     # Compute F
     for (e in seq(1, tree_extra$n_edges, 2)) {
@@ -335,9 +326,12 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp) {
             S[right,i] <- sum(F[right,] * tright[i,])
             S[left,i] <- sum(F[left,] * tleft[i,])
         }
-        # NOTE: I took this out of the loop above, but is this
-        # really faster in this context?
-        F[p,] <- S[right,] * S[left,]
+
+        # When values are smaller than tol set them to tol, otherwise the
+        # likelihood will be zero, we will have division by zero and the world
+        # will end
+        val <- S[right,] * S[left,]
+        F[p,] <- ifelse(val<tol, tol, val)
     }
 
     # Get the root node number
@@ -398,7 +392,7 @@ transition_probabilities <- function(Q_eigen, edges) {
 
 # The expected number of labelled markov transitions and expected markov rewards
 # TODO: find a better name for this function =P
-func_H <- function(Q, Q_eigen, tree, tree_extra) {
+func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
 
     # Labelled markov transitions
     lmt <- array(0, dim = c(dim(Q), tree_extra$n_edges))
@@ -463,7 +457,7 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
 
                 # 4. Iij, which uses the edge length t and the eigen values di,dj
                 # TODO: This can be moved to outside both for loops
-                Iij <- build_Iij(Ib, d, i, j, t)
+                Iij <- build_Iij(Ib, d, i, j, t, tol)
 
                 lmt_partial <- lmt_partial + ((Silmt %*% Sj) * Iij)
                 emr_partial <- emr_partial + ((Siemr %*% Sj) * Iij)
@@ -479,7 +473,7 @@ func_H <- function(Q, Q_eigen, tree, tree_extra) {
 
 # Maybe its better to build the entire matrix with all
 # possible values once and just use its values afterwards
-build_Iij <- function(Ib, d, i, j, t) {
+build_Iij <- function(Ib, d, i, j, t, tol) {
 
     # NOTE: We are comparing two floats here,
     # tolerance got from (Paula Tataru, 2011)
@@ -488,7 +482,7 @@ build_Iij <- function(Ib, d, i, j, t) {
     # NOTE: NEVER use all.equal() when not really necessary, it's absurdly
     # slow..
     diff <- d[i] - d[j]
-    if (abs(diff) <= 1e-8) {
+    if (abs(diff) <= tol) {
         return ( t * Ib[i] )
     } else {
         return ( (Ib[i] - Ib[j]) / diff )

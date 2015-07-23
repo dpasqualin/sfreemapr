@@ -111,7 +111,6 @@ Q_mcmc <- function(tree, tip_states, model, prior, gamma_prior, tol, burn_in, sa
                     , Q_list=Q
                     , prior_list=prior
                     , logL_list=logL))
-
 }
 
 build_states_matrix <- function(tree, tip_states) {
