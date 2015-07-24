@@ -315,7 +315,7 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
 
     # Compute F
     for (e in seq(1, tree_extra$n_edges, 2)) {
-        p <- tree$edge[e,1]        # parent node
+        u <- tree$edge[e,1]        # parent node
         right <- tree$edge[e,2]    # right node
         left <- tree$edge[e+1,2]   # left node
 
@@ -331,7 +331,7 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
         # likelihood will be zero, we will have division by zero and the world
         # will end
         val <- S[right,] * S[left,]
-        F[p,] <- ifelse(val<tol, tol, val)
+        F[u,] <- ifelse(val<tol, tol, val)
     }
 
     # Get the root node number
