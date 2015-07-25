@@ -251,8 +251,8 @@ expected_value <- function(tree, Q, map) {
 posterior_restricted_moment <- function(tree, tree_extra, map) {
     # Allocate vector of size tree_extra$n_edges. Index i will hold the expected value
     # of the ith edge of the tree
-    prm_lmt <- matrix(0, tree_extra$n_edges, tree_extra$n_states)
-    prm_emr <- matrix(0, tree_extra$n_edges, tree_extra$n_states)
+    prm_lmt <- create_mpfrMatrix(tree_extra$n_edges, tree_extra$n_states)
+    prm_emr <- create_mpfrMatrix(tree_extra$n_edges, tree_extra$n_states)
 
     # Retrieve useful values
     h <- map[['h']]
@@ -290,6 +290,15 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
     return (list(lmt=prm_lmt, emr=prm_emr))
 }
 
+create_mpfrMatrix <- function(rows, cols=NULL) {
+    if (is.null(cols)) {
+        cols = rows
+    }
+    m <- mpfr(rep(0,rows*cols), 128)
+    m <- new("mpfrMatrix", m, Dim = c(as.integer(rows), as.integer(cols)))
+    return(m)
+}
+
 # The vector of forward, often called partial or fractional likelihood.
 fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol) {
 
@@ -297,13 +306,13 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
     # likelihoods at node u. Element F ui is the probability of the
     # observed data at only the tips that descend from the node u,
     # given that the state of u is i.
-    F <- matrix(0, tree_extra$n_nodes, tree_extra$n_states)
+    F <- create_mpfrMatrix(tree_extra$n_nodes, tree_extra$n_states)
     # Directional likelihoods
-    S <- matrix(0, tree_extra$n_nodes, tree_extra$n_states)
+    S <- create_mpfrMatrix(tree_extra$n_nodes, tree_extra$n_states)
     # G is the probability of observing state i at node
     # u together with other tip states on the subtree of t
     # obtained by removing all lineages downstream of node u.
-    G <- matrix(0, tree_extra$n_nodes, tree_extra$n_states)
+    G <- create_mpfrMatrix(tree_extra$n_nodes, tree_extra$n_states)
 
     # Set col names, just to make it easy to debug
     states <- colnames(F) <- colnames(S) <- colnames(G) <- colnames(Q)
@@ -312,6 +321,8 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
     # As stated in the article, when value is ambiguous, we set all ambiguous
     # values to 1 (100% chance)
     F[1:tree_extra$n_tips,] <- tree_extra$states
+
+    print('aqui')
 
     # Compute F
     for (e in seq(1, tree_extra$n_edges, 2)) {
@@ -330,8 +341,7 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
         # When values are smaller than tol set them to tol, otherwise the
         # likelihood will be zero, we will have division by zero and the world
         # will end
-        val <- S[right,] * S[left,]
-        F[u,] <- ifelse(val<tol, tol, val)
+        F[u,] <- S[right,] * S[left,]
     }
 
     # Get the root node number
@@ -359,7 +369,6 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
             G[right,i] <- sum(G[p,]*S[left,]*tright[i,])
         }
     }
-
     return (list(F=F, G=G, S=S, L=L))
 }
 
