@@ -330,8 +330,7 @@ fractional_likelihoods <- function(tree, tree_extra, Q, Q_eigen, prior, Tp, tol)
         # When values are smaller than tol set them to tol, otherwise the
         # likelihood will be zero, we will have division by zero and the world
         # will end
-        val <- S[right,] * S[left,]
-        F[u,] <- ifelse(val<tol, tol, val)
+        F[u,] <- S[right,] * S[left,]
     }
 
     # Get the root node number
