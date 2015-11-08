@@ -29,7 +29,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
         class(mtrees) <- "multiPhylo"
         return(mtrees)
 
-    } else if (inherits(tree, "phylo")) {
+    } else if (!inherits(tree, "phylo")) {
         stop("'tree' should be an object of class 'phylo'")
     } else if (!is.rooted(tree)) {
         stop("'tree' must be rooted")
