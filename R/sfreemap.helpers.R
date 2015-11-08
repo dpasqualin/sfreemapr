@@ -248,7 +248,7 @@ sfreemap.pie_plot <- function(tree, percent_only=FALSE) {
     }
 
     do_the_plot <- function(percent) {
-        if (class(tree) == 'multiPhylo') {
+        if (inherits(tree, 'multiPhylo')) {
             t <- tree[[1]]
         } else {
             t <- tree
@@ -269,12 +269,12 @@ sfreemap.pie_plot <- function(tree, percent_only=FALSE) {
         legend('topright', legend=l_values, text.col=l_colors)
     }
 
-    if (class(tree) == 'multiPhylo') {
+    if (inherits(tree, 'multiPhylo')) {
         # get the percentage for each tree
         all_percent <- lapply(tree, sfreemap.pie_plot, percent_only=TRUE)
         # get a mean of all percentages
         percent <- Reduce('+', all_percent)/length(all_percent)
-    } else if (class(tree) == 'phylo') {
+    } else if (inherits(tree, 'phylo')) {
         if (is.null(tree$mapped.edge)) {
             stop("tree should contain mapped states on edges")
         }
@@ -316,10 +316,10 @@ sfreemap.read_tips <- function(file, character=1, sep="\t") {
 }
 
 sfreemap.describe <- function (tree) {
-    if (class(tree) == 'phylo') {
+    if (inherits(tree, 'phylo')) {
         lmt <- colSums(tree$mapped.edge.lmt)
         emr <- colSums(tree$mapped.edge)
-    } else if (class(tree) == 'multiPhylo') {
+    } else if (inherits(tree, 'multiPhylo')) {
         lmt <- t(sapply(tree, function(x) colSums(x$mapped.edge.lmt)))
         lmt <- colMeans(lmt)
 
