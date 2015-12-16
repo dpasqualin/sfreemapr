@@ -138,17 +138,24 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
 
     # Vector with rewards
     rewards <- rep(1,nrow(Q))
-    # FIXME: according to Minin & Suchar article this was suppose to be a
-    # parameters and user could provide different rewards for the states. But
-    # we tried with different values and the result just doesn't make sense.
-    # We've tried to reach the authors but got no answer on this matter.
-    #if (hasArg(rewards)) {
-    #    rewards <- list(...)$rewards
-    #    if (length(rewards) != nrow(Q)) {
-    #        stop("The rewards vector should represent the states of Q")
-    #    }
-    #}
+    if (hasArg(rewards)) {
+        rewards <- list(...)$rewards
+        if (length(rewards) != nrow(Q)) {
+            stop("The rewards vector should represent the states")
+        }
+    }
     names(rewards) <- colnames(Q)
+
+    # Defining the transitions of interest. By default, all transitions.
+    QL <- matrix(1, nrow=nrow(Q), ncol=ncol(Q))
+    diag(QL) <- 0
+    if (hasArg(QL)) {
+        QL <- list(...)$QL
+        if (!all(dim(Q) == dim(QL))) {
+            stop("QL must have same dimensions as Q")
+        }
+    }
+    rownames(QL) <- colnames(QL) <- rownames(Q)
 
     # Acquire more info about the tree.
     tree_extra <- list(
@@ -191,13 +198,6 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     # Transistion probabilities
     MAP[['tp']] <- transition_probabilities(Q_eigen, tree$edge.length)
 
-    # Step 3
-    # Employing the eigen decomposition above compute E(h, tp*) for
-    # each edge b* in the set of interest Omega using equation 2.4
-    # (expected number of markov transitions) and equation 2.12
-    # (expected markov rewards).
-    MAP[['h']] <- func_H(Q, Q_eigen, tree, tree_extra, tol)
-
     # Step 4 and 5
     # Traverse the tree once and calculate Fu and Sb for each node u and
     # each edge b;
@@ -206,58 +206,80 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     MAP[['fl']] <- fractional_likelihoods(tree, tree_extra, Q, Q_eigen
                                           , prior, MAP$tp, tol)
 
-    # Posterior restricted moment for branches
-    # This is the "per branch" expected value for lmt and emr
-    MAP[['prm']] <- posterior_restricted_moment(tree, tree_extra, MAP)
 
-    # This is the global expected value
-    MAP[['ev']] <- expected_value(tree, Q, MAP)
+    # FIXME: for some unknown reason if I remove this line I get a 'out of
+    # bounds' error in posterior_restricted_moment(). This line doesn't need to
+    # exist
+    MAP[['h']] <- list()
 
-    # Let's set the elements back to the original tree
-    tree[['Q']] <- Q
-    tree[['prior']] <- prior
-    tree[['logL']] <- logL
+    # Build dwelling times
+    tree[['mapped.edge']] <- tree[['mapped.edge.lmt']] <- tname <- NULL
+    states <- rownames(QL)
+    n_states <- tree_extra$n_states
+    multiplier <- matrix(0, nrow=n_states, ncol=n_states)
 
-    tree[['mapped.edge']] <- MAP[['ev']]$emr
-    tree[['mapped.edge.lmt']] <- MAP[['ev']]$lmt
+    for (i in 1:n_states) {
+        for (j in 1:n_states) {
 
-    tree[['MAP']] <- MAP
+            if (i == j) {
+                print('rewards')
+                value <- rewards[i] # dwelling times
+            } else {
+                print('transitions')
+                value <- QL[i,j] * Q[i,j] # number of transitions
+            }
+
+            if (value == 0) {
+                next
+            }
+            multiplier[i,j] <- value
+
+            # Step 3
+            h <- func_H(multiplier, Q_eigen, tree, tree_extra, tol)
+            prm <- posterior_restricted_moment(h, tree, tree_extra, MAP)
+            ev <- expected_value(tree, Q, MAP, prm)
+
+            if (i == j) {
+                # dwelling times
+                tree[['mapped.edge']] <- cbind(tree[['mapped.edge']], ev)
+            } else {
+                # number of transitions
+                state_from <- states[i]
+                state_to <- states[j]
+                tname <- c(tname, paste(state_from, state_to, sep=','))
+                tree[['mapped.edge.lmt']] <- cbind(tree[['mapped.edge.lmt']], ev)
+            }
+
+            multiplier[i,j] <- 0
+        }
+    }
+
+    colnames(tree[['mapped.edge']]) <- names(rewards)
+    colnames(tree[['mapped.edge.lmt']]) <- tname
 
     # Return the tree in the original order
     return (sfreemap.reorder(tree, 'cladewise'))
 }
 
 # The final answer!
-expected_value <- function(tree, Q, map) {
+expected_value <- function(tree, Q, map, prm) {
 
     likelihood <- map[['fl']][['L']]
-    # posterior restricted moment...
-    prm <- map[['prm']]
 
-    EV = list()
-    EV[['lmt']] <- prm[['lmt']] / likelihood
-    EV[['emr']] <- prm[['emr']] / likelihood
+    ret <- prm / likelihood
 
     # the rownames of the mapped objects
-    mapped_names <- paste(tree$edge[,1], ",", tree$edge[,2], sep="")
-    rownames(EV[['lmt']]) <- rownames(EV[['emr']]) <- mapped_names
-    colnames(EV[['emr']]) <- colnames(EV[['lmt']]) <- colnames(Q)
+    names(ret) <- paste(tree$edge[,1], ",", tree$edge[,2], sep="")
 
-    return (EV)
+    return (ret)
 }
 
 # Compute the expected value for labelled markov transitions and
 # evolutionary reward, given the fractional and directional likelihoods
-posterior_restricted_moment <- function(tree, tree_extra, map) {
+posterior_restricted_moment <- function(multiplier, tree, tree_extra, map) {
     # Allocate vector of size tree_extra$n_edges. Index i will hold the expected value
     # of the ith edge of the tree
-    prm_lmt <- matrix(0, tree_extra$n_edges, tree_extra$n_states)
-    prm_emr <- matrix(0, tree_extra$n_edges, tree_extra$n_states)
-
-    # Retrieve useful values
-    h <- map[['h']]
-    lmt <- h[['lmt']] # labelled markov transitions
-    emr <- h[['emr']] # expected markov rewards
+    ret <- rep(0, tree_extra$n_edges)
 
     fl <- map[['fl']] # fractional likelihoods
     F <- fl[['F']]
@@ -276,18 +298,16 @@ posterior_restricted_moment <- function(tree, tree_extra, map) {
         c <- edge[i,2] # child node
         b <- edge[i,3] # brother node
 
-        lmt_i <- lmt[,,i]
-        emr_i <- emr[,,i]
+        partial <- multiplier[,,i]
 
         # Equation 3.8 in the paper
         for (j in 1:tree_extra$n_states) {
             gs <- G[p,j] * S[b,j] * F[c,]
-            prm_lmt[i,j] <- prm_lmt[i,j] + sum(gs * lmt_i[j,])
-            prm_emr[i,j] <- prm_emr[i,j] + sum(gs * emr_i[j,])
+            ret[i] <- ret[i] + sum(gs * partial[j,])
         }
     }
 
-    return (list(lmt=prm_lmt, emr=prm_emr))
+    return (ret)
 }
 
 # The vector of forward, often called partial or fractional likelihood.
@@ -391,27 +411,12 @@ transition_probabilities <- function(Q_eigen, edges) {
 
 # The expected number of labelled markov transitions and expected markov rewards
 # TODO: find a better name for this function =P
-func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
+func_H <- function(multiplier, Q_eigen, tree, tree_extra, tol) {
 
-    # Labelled markov transitions
-    lmt <- array(0, dim = c(dim(Q), tree_extra$n_edges))
-    # Expected markov rewards
-    emr <- array(0, dim = c(dim(Q), tree_extra$n_edges))
+    ret <- array(0, dim = c(tree_extra$n_states, tree_extra$n_states, tree_extra$n_edges))
 
     # Just an alias, to make it easier to read the formulas below
     d <- Q_eigen$values
-
-    # 2. Find QL, the the matrix Q limited to the transitions desired
-    # For now we consider all transitions except the ciclic ones, the diagonal
-    # of Q
-    QL <- Q
-    diag(QL) <- 0
-
-    # 2. Define diag(w1,...,wm). If wi equals to 1, we have the amount of time
-    # the trais spent on state i. This is the only possibility now.
-    # TODO: Professor Marcos said on the email BayesTraits Vs Simmap that this
-    # calculation is slightly different... check it later.
-    emr_diag <- diag(tree_extra$rewards)
 
     # 1. Get the transitions that happened in a edge
     # TODO: This matrix has only one entry different from zero, there
@@ -426,8 +431,7 @@ func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
     # This is part of the second inner loop. We broght it outside
     # because... it's R, and you have to do weird stuff to improve performance.
     Sij_all <- lapply(1:tree_extra$n_states, gen_Si)
-    Slmt <- lapply(1:tree_extra$n_states, function(i) Sij_all[[i]]%*%QL)
-    Semr <- lapply(1:tree_extra$n_states, function(i) Sij_all[[i]]%*%emr_diag)
+    S_partial <- lapply(1:tree_extra$n_states, function(i) Sij_all[[i]] %*% multiplier)
 
     # A matrix where each line corresponds to exp(t*d) for the nth edge
     # This is gonna be used inside build_Iij function. It was there before,
@@ -438,8 +442,7 @@ func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
         t <- tree$edge.length[b]
 
         # NOTE: Maybe initialize outside the loop and just zero it inside?
-        lmt_partial <- matrix(0, tree_extra$n_states, tree_extra$n_states)
-        emr_partial <- matrix(0, tree_extra$n_states, tree_extra$n_states)
+        partial <- matrix(0, tree_extra$n_states, tree_extra$n_states)
 
         Ib <- Ib_all[b,]
 
@@ -447,8 +450,7 @@ func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
             # 3. S, which uses the Q_eigen and E, a matrix with zero entries
             # except for the iith element, which is 1
             # Set new Ei
-            Silmt = Slmt[[i]]
-            Siemr = Semr[[i]]
+            Si_partial = S_partial[[i]]
 
             for (j in 1:tree_extra$n_states) {
                 # Set new Ej
@@ -458,16 +460,14 @@ func_H <- function(Q, Q_eigen, tree, tree_extra, tol) {
                 # TODO: This can be moved to outside both for loops
                 Iij <- build_Iij(Ib, d, i, j, t, tol)
 
-                lmt_partial <- lmt_partial + ((Silmt %*% Sj) * Iij)
-                emr_partial <- emr_partial + ((Siemr %*% Sj) * Iij)
+                partial <- partial + ((Si_partial %*% Sj) * Iij)
             }
         }
 
-        lmt[,,b] <- lmt_partial
-        emr[,,b] <- emr_partial
+        ret[,,b] <- partial
     }
 
-    return (list(lmt=lmt, emr=emr))
+    return (ret)
 }
 
 # Maybe its better to build the entire matrix with all
