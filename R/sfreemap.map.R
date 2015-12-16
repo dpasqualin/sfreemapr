@@ -222,10 +222,8 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
         for (j in 1:n_states) {
 
             if (i == j) {
-                print('rewards')
                 value <- rewards[i] # dwelling times
             } else {
-                print('transitions')
                 value <- QL[i,j] * Q[i,j] # number of transitions
             }
 
