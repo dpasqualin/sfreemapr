@@ -1,8 +1,8 @@
-\name{sfreemap.map}
-\alias{sfreemap.map}
+\name{sfreemapr.map}
+\alias{sfreemapr.map}
 \title{Simulation free stochastic character mapping on a phylogenetic tree}
 \usage{
-sfreemap.map(tree, tip_states, Q, ...)
+sfreemapr.map(tree, tip_states, Q, ...)
 
 }
 \arguments{
@@ -51,7 +51,7 @@ a fixed value of the transition matrix, Q, instead of by sampling Q from its pos
 		tol will be set to zero;
 
 		\code{"parallel"} (default: TRUE): when \code{tree} is of type \code{multiPhylo} we can run
-		sfreemap in parallel. The number of processes will be the same as the cores available in your machine.
+		sfreemapr in parallel. The number of processes will be the same as the cores available in your machine.
 
 		When \code{Q="mcmc"} some other parameters might be set:
 		\itemize{

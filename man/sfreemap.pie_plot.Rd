@@ -1,8 +1,8 @@
-\name{sfreemap.pie_plot}
-\alias{sfreemap.pie_plot}
+\name{sfreemapr.pie_plot}
+\alias{sfreemapr.pie_plot}
 \title{Plot a tree with a summary of time spent no each state by each node}
 \usage{
-sfreemap.pie_plot(tree, percent_only=FALSE)
+sfreemapr.pie_plot(tree, percent_only=FALSE)
 }
 \arguments{
     \item{tree}{A result of a simmap.map execution.}
@@ -28,7 +28,7 @@ sfreemap.pie_plot(tree, percent_only=FALSE)
 \author{Diego Pasqualin \email{dpasqualin@inf.ufpr.br}}
 
 \seealso{
-    \code{\link{sfreemap.map}}
+    \code{\link{sfreemapr.map}}
 }
 %\keyword{phylogenetics}
 \keyword{utilities}

@@ -234,8 +234,8 @@ mcmcQ<-function(bt,xx,model,tree,tol,m,burnin,samplefreq,nsim,vQ,prior){
     return(XX)
 }
 
-# receives a tree modified by sfreemap
-sfreemap.pie_plot <- function(tree, percent_only=FALSE) {
+# receives a tree modified by sfreemapr
+sfreemapr.pie_plot <- function(tree, percent_only=FALSE) {
     get_rows <- function(x) {
         y <- x$mapped.edge
         rownames(y) <- x$edge[,1]
@@ -271,7 +271,7 @@ sfreemap.pie_plot <- function(tree, percent_only=FALSE) {
 
     if (inherits(tree, 'multiPhylo')) {
         # get the percentage for each tree
-        all_percent <- lapply(tree, sfreemap.pie_plot, percent_only=TRUE)
+        all_percent <- lapply(tree, sfreemapr.pie_plot, percent_only=TRUE)
         # get a mean of all percentages
         percent <- Reduce('+', all_percent)/length(all_percent)
     } else if (inherits(tree, 'phylo')) {
@@ -290,7 +290,7 @@ sfreemap.pie_plot <- function(tree, percent_only=FALSE) {
     }
 }
 
-sfreemap.read_tips <- function(file, character=1, sep="\t") {
+sfreemapr.read_tips <- function(file, character=1, sep="\t") {
 
     data <- read.csv(file, sep=sep, header=FALSE, colClasses = "character"
                          , fill=FALSE, strip.white = TRUE)
@@ -315,7 +315,7 @@ sfreemap.read_tips <- function(file, character=1, sep="\t") {
     return (res)
 }
 
-sfreemap.describe <- function (tree) {
+sfreemapr.describe <- function (tree) {
     if (inherits(tree, 'phylo')) {
         lmt <- colSums(tree$mapped.edge.lmt)
         emr <- colSums(tree$mapped.edge)
@@ -333,7 +333,7 @@ sfreemap.describe <- function (tree) {
 
 # function reorders simmap tree
 # written Liam Revell 2011, 2013
-sfreemap.reorder <- function(tree, order='cladewise') {
+sfreemapr.reorder <- function(tree, order='cladewise') {
     x <- reorder(tree, order)
     o <- whichorder(x$edge[,2], tree$edge[,2])
     x$mapped.edge <- tree$mapped.edge[o,]

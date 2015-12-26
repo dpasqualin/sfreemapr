@@ -1,15 +1,15 @@
-context('sfreemap.map')
+context('sfreemapr.map')
 
-trees_file <- system.file("extdata", "trees.data", package="sfreemap")
-tips_file <- system.file("extdata", "tips.data", package="sfreemap")
+trees_file <- system.file("extdata", "trees.data", package="sfreemapr")
+tips_file <- system.file("extdata", "tips.data", package="sfreemapr")
 
 trees <- read.tree(trees_file)
-tips <- sfreemap.read_tips(tips_file, 1)
+tips <- sfreemapr.read_tips(tips_file, 1)
 
 test_that ('return correct value for a single tree', {
 
     tree <- trees[[1]]
-    sm <- sfreemap.map(tree, tips, Q='empirical')
+    sm <- sfreemapr.map(tree, tips, Q='empirical')
 
     expect_false(is.null(sm$mapped.edge))
     expect_false(is.null(sm$mapped.edge.lmt))
@@ -27,12 +27,12 @@ test_that ('return correct value for a single tree', {
     expect_equal(emr_result, emr_expected)
 })
 
-test_that ('we can describe the sfreemap.map result for a single tree', {
+test_that ('we can describe the sfreemapr.map result for a single tree', {
 
     tree <- trees[[1]]
-    sm <- sfreemap.map(tree, tips, Q='empirical')
+    sm <- sfreemapr.map(tree, tips, Q='empirical')
 
-    desc <- sfreemap.describe(sm)
+    desc <- sfreemapr.describe(sm)
 
     transitions_result <- signif(desc$transitions, 6)
     dwelling_result <- signif(desc$dwelling_times, 6)

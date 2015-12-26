@@ -1,7 +1,7 @@
 # Input
 #   tree    a phylogenetic tree as an object of class "phylo" (from package
 #           ape)
-sfreemap.map <- function(tree, tip_states, Q, ...) {
+sfreemapr.map <- function(tree, tip_states, Q, ...) {
 
     # Should this program run in parallel?
     parallel <- TRUE
@@ -14,9 +14,9 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
         # For Just call the same program multiple times...
         if (parallel == TRUE) {
             cores <- detectCores()
-            mtrees <- mclapply(tree, sfreemap.map, tip_states, Q, ..., mc.cores=cores)
+            mtrees <- mclapply(tree, sfreemapr.map, tip_states, Q, ..., mc.cores=cores)
         } else {
-            mtrees <- lapply(tree, sfreemap.map, tip_states, Q, ...)
+            mtrees <- lapply(tree, sfreemapr.map, tip_states, Q, ...)
         }
 
         # When Q=mcmc we will have length(trees)*n_simulation trees at the end
@@ -105,14 +105,14 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
         # deal with it. Maybe just run the program for every Q?
         QP <- Q_mcmc(tree, tip_states, model, prior, gamma_prior, tol, burn_in
                      , sample_freq, vQ, n_simulations)
-        # Call sfreemap.map for each {Q,prior} returned by the mcmc simulation
+        # Call sfreemapr.map for each {Q,prior} returned by the mcmc simulation
         params <- list(...)
         params$tree <- tree
         params$tip_states <- tip_states
         res <- function(QP) {
             params$Q <- QP$Q
             params$prior <- QP$prior
-            return (do.call(sfreemap.map, params))
+            return (do.call(sfreemapr.map, params))
         }
 
         if (parallel == TRUE) {
@@ -256,7 +256,7 @@ sfreemap.map <- function(tree, tip_states, Q, ...) {
     colnames(tree[['mapped.edge.lmt']]) <- tname
 
     # Return the tree in the original order
-    return (sfreemap.reorder(tree, 'cladewise'))
+    return (sfreemapr.reorder(tree, 'cladewise'))
 }
 
 # The final answer!

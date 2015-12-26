@@ -1,3 +1,3 @@
 library(testthat)
-library(sfreemap)
-test_check("sfreemap")
+library(sfreemapr)
+test_check("sfreemapr")
